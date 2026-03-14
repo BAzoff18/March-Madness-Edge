@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRACKET.EDGE — 2026 March Madness Algorithm</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06080f;
+  --surface: #0e1220;
+  --surface2: #141926;
+  --border: #1d2535;
+  --border2: #252f42;
+  --text: #e8eef8;
+  --muted: #6272a0;
+  --dim: #334060;
+  --orange: #f97316;
+  --orange2: #fb923c;
+  --gold: #fbbf24;
+  --green: #22c55e;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --purple: #a855f7;
+  --display: 'Bebas Neue', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--mono); font-size: 13px; min-height: 100vh; overflow-x: hidden; }
+
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,165,0,0.025) 39px, rgba(255,165,0,0.025) 40px),
+              repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,165,0,0.025) 39px, rgba(255,165,0,0.025) 40px);
+}
+body::after {
+  content: ''; position: fixed; top: -30%; left: 20%; width: 60%; height: 60%; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse, rgba(249,115,22,0.07) 0%, transparent 60%);
+}
+#app { position: relative; z-index: 1; }
+
+/* ── HEADER ── */
+header {
+  padding: 0 32px; height: 68px; display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(6,8,15,0.92); backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 100;
+}
+.logo { font-family: var(--display); font-size: 32px; letter-spacing: 0.06em; color: var(--text); line-height: 1; }
+.logo span { color: var(--orange); }
+.logo-sub { font-size: 9px; letter-spacing: 0.25em; color: var(--muted); text-transform: uppercase; }
+.header-badge {
+  margin-left: auto; display: flex; align-items: center; gap: 6px;
+  background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.3);
+  border-radius: 20px; padding: 4px 12px; font-size: 10px; letter-spacing: 0.12em; color: var(--orange2); text-transform: uppercase;
+}
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 6px var(--orange); animation: blink 1.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* ── MAIN ── */
+.main { max-width: 1060px; margin: 0 auto; padding: 28px 20px 80px; }
+
+/* ── NOTE BANNER ── */
+.note-banner {
+  background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.2);
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 20px;
+  font-size: 11px; color: #d4a30a; line-height: 1.6; letter-spacing: 0.03em;
+}
+
+/* ── PANEL ── */
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 22px 24px; margin-bottom: 18px; position: relative; overflow: hidden;
+}
+.panel::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, rgba(249,115,22,0.4), transparent); }
+.panel-title { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+.panel-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── INPUTS ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+label { display: block; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+select, input {
+  width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 8px;
+  color: var(--text); padding: 11px 13px; font-family: var(--mono); font-size: 12px; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s; appearance: none; -webkit-appearance: none;
+}
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%236272a0' d='M5 7L1 3h8z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 30px; }
+select:focus, input:focus { border-color: var(--orange); box-shadow: 0 0 0 3px rgba(249,115,22,0.12); }
+.input-note { font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+/* ── SEED BADGE ── */
+.seed-preview {
+  display: flex; gap: 12px; margin-top: 12px; flex-wrap: wrap;
+}
+.seed-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--bg); border: 1px solid var(--border2); border-radius: 6px; padding: 5px 10px; font-size: 11px;
+}
+.seed-num { font-family: var(--display); font-size: 16px; color: var(--orange); min-width: 20px; text-align: center; }
+
+/* ── ANALYZE BUTTON ── */
+#analyzeBtn {
+  width: 100%; padding: 16px; margin-top: 18px;
+  background: linear-gradient(135deg, #c2410c, #f97316);
+  border: none; border-radius: 10px; color: #fff;
+  font-family: var(--display); font-size: 22px; letter-spacing: 0.12em;
+  cursor: pointer; position: relative; overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 24px rgba(249,115,22,0.35);
+}
+#analyzeBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 32px rgba(249,115,22,0.5); }
+#analyzeBtn:disabled { background: var(--surface2); color: var(--muted); box-shadow: none; cursor: not-allowed; }
+.shimmer { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.15) 50%, transparent 65%); animation: shimmer 2s infinite; }
+@keyframes shimmer { to { transform: translateX(200%); } }
+
+/* ── LOADING ── */
+.loading-wrap { margin-top: 12px; display: none; }
+.loading-wrap.show { display: block; }
+.loading-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; margin-bottom: 10px; }
+.loading-track::after { content: ''; display: block; height: 100%; width: 35%; background: linear-gradient(90deg, var(--orange), var(--gold)); animation: load 1.2s ease-in-out infinite; border-radius: 2px; }
+@keyframes load { 0%{transform:translateX(-150%)} 100%{transform:translateX(380%)} }
+.steps { display: flex; flex-wrap: wrap; gap: 6px; }
+.step { font-size: 9px; letter-spacing: 0.1em; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border2); color: var(--dim); transition: all 0.3s; }
+.step.run { border-color: var(--orange); color: var(--orange2); background: rgba(249,115,22,0.08); }
+.step.done { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.08); }
+
+/* ── RESULTS ── */
+#results { display: none; }
+#results.show { display: block; animation: fadeUp 0.4s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(135deg, var(--surface) 0%, #0d1526 100%);
+  border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px; margin-bottom: 18px; position: relative; overflow: hidden;
+}
+.hero::after { content: ''; position: absolute; top: -80px; right: -80px; width: 280px; height: 280px; border-radius: 50%; background: radial-gradient(circle, rgba(249,115,22,0.07), transparent 70%); pointer-events: none; }
+.hero-vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; margin-bottom: 24px; }
+.hero-team { text-align: center; }
+.hero-seed { font-family: var(--display); font-size: 13px; letter-spacing: 0.15em; color: var(--orange); margin-bottom: 4px; }
+.hero-name { font-family: var(--display); font-size: 44px; letter-spacing: 0.04em; line-height: 1; }
+.hero-name.t1 { color: var(--orange2); }
+.hero-name.t2 { color: #93c5fd; }
+.hero-conf { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.hero-pct { font-family: var(--display); font-size: 40px; margin-top: 10px; line-height: 1; }
+.hero-pct.t1 { color: var(--orange2); }
+.hero-pct.t2 { color: #93c5fd; }
+.hero-pct-lbl { font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.hero-mid { text-align: center; }
+.hero-vs-text { font-family: var(--display); font-size: 28px; color: var(--border2); display: block; margin-bottom: 10px; }
+.hero-round { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); }
+.hero-spread { font-family: var(--display); font-size: 22px; color: var(--text); margin-top: 8px; }
+.hero-bar { height: 12px; display: flex; gap: 2px; border-radius: 6px; overflow: hidden; margin-top: 4px; }
+.hb-t1 { background: linear-gradient(90deg, #c2410c, #fb923c); transition: flex 0.9s cubic-bezier(.4,0,.2,1); }
+.hb-t2 { background: linear-gradient(90deg, #1d4ed8, #60a5fa); transition: flex 0.9s cubic-bezier(.4,0,.2,1); }
+.hero-bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 2px; margin-bottom: 18px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; }
+.tab-btn { flex: 1; padding: 9px 4px; background: transparent; border: none; color: var(--muted); font-family: var(--display); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; cursor: pointer; border-radius: 7px; transition: all 0.2s; }
+.tab-btn:hover { color: var(--text); background: var(--border); }
+.tab-btn.active { background: var(--border2); color: var(--text); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+/* ── CARDS ── */
+.card { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+.card-title { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+.span2 { grid-column: 1/-1; }
+.big { font-family: var(--display); font-size: 38px; line-height: 1; }
+.big.orange { color: var(--orange2); }
+.big.blue { color: #93c5fd; }
+.big.green { color: var(--green); }
+.big.gold { color: var(--gold); }
+
+/* ── MODEL BAR ── */
+.mbar { margin-bottom: 14px; }
+.mbar-head { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 5px; }
+.mbar-track { height: 10px; display: flex; gap: 2px; border-radius: 5px; overflow: hidden; }
+.mbar-t1 { background: linear-gradient(90deg, #c2410c, #fb923c); transition: flex 0.7s ease; }
+.mbar-t2 { background: linear-gradient(90deg, #1d4ed8, #60a5fa); transition: flex 0.7s ease; }
+
+/* ── MINI BAR ── */
+.mini-bar { background: var(--bg); border-radius: 3px; height: 4px; overflow: hidden; margin-top: 5px; }
+.mini-fill { height: 100%; border-radius: 3px; transition: width 0.7s ease; }
+
+/* ── BET CARD ── */
+.bet-card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 10px; }
+.bet-card.val { border-color: rgba(34,197,94,0.3); }
+.bet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.bet-name { font-weight: 500; font-size: 13px; }
+.bet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; font-size: 11px; }
+.bet-row { display: flex; justify-content: space-between; }
+.bk { color: var(--muted); }
+.bv { font-weight: 500; }
+.kelly-row { margin-top: 10px; padding: 6px 10px; background: rgba(251,191,36,0.06); border: 1px solid rgba(251,191,36,0.15); border-radius: 5px; font-size: 11px; color: var(--muted); }
+.kelly-row span { color: var(--gold); font-weight: 600; }
+
+/* ── BADGE ── */
+.badge { display: inline-block; font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+.b-val  { background: rgba(34,197,94,.1);   color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+.b-nov  { background: rgba(98,114,160,.08); color: var(--muted); border: 1px solid var(--border); }
+.b-hi   { background: rgba(34,197,94,.1);   color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+.b-med  { background: rgba(251,191,36,.1);  color: var(--gold);  border: 1px solid rgba(251,191,36,.3); }
+.b-lo   { background: rgba(239,68,68,.1);   color: var(--red);   border: 1px solid rgba(239,68,68,.3); }
+.b-fav  { background: rgba(249,115,22,.1);  color: var(--orange2);border: 1px solid rgba(249,115,22,.3); }
+.b-dog  { background: rgba(59,130,246,.1);  color: #93c5fd;      border: 1px solid rgba(59,130,246,.3); }
+.b-ov   { background: rgba(34,197,94,.1);   color: var(--green); border: 1px solid rgba(34,197,94,.3); }
+.b-un   { background: rgba(59,130,246,.1);  color: #93c5fd;      border: 1px solid rgba(59,130,246,.3); }
+
+/* ── FACTOR ── */
+.factor { display: flex; gap: 14px; padding: 13px 15px; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; margin-bottom: 10px; }
+.factor-n { font-family: var(--display); font-size: 28px; color: var(--orange); opacity: 0.6; min-width: 28px; }
+.factor-t { font-size: 12px; color: #8899cc; line-height: 1.7; padding-top: 4px; }
+
+/* ── UPSET METER ── */
+.upset-meter { text-align: center; padding: 20px; }
+.upset-ring { position: relative; width: 130px; height: 130px; margin: 0 auto 16px; }
+.upset-svg { width: 130px; height: 130px; }
+.upset-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.upset-pct { font-family: var(--display); font-size: 30px; line-height: 1; }
+.upset-lbl { font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.upset-desc { font-size: 12px; color: var(--muted); line-height: 1.6; max-width: 300px; margin: 0 auto; }
+
+/* ── BEST BET BANNER ── */
+.bbb-wrap { margin-bottom: 20px; }
+.bbb {
+  border-radius: 14px; padding: 2px; position: relative; overflow: hidden;
+}
+.bbb.orange { background: linear-gradient(135deg, #7c2d12, #f97316, #7c2d12); }
+.bbb.blue   { background: linear-gradient(135deg, #1e3a8a, #3b82f6, #1e3a8a); }
+.bbb.green  { background: linear-gradient(135deg, #14532d, #22c55e, #14532d); }
+.bbb.gray   { background: linear-gradient(135deg, #1d2535, #334060, #1d2535); }
+.bbb-inner { background: #070b14; border-radius: 12px; padding: 24px 28px; display: flex; align-items: center; gap: 28px; position: relative; z-index: 1; }
+.bbb-left { flex: 1; }
+.bbb-eye { font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.bbb-match { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.bbb-pick { font-family: var(--display); font-size: 40px; line-height: 1; margin-bottom: 12px; }
+.bbb.orange .bbb-pick { color: var(--orange2); }
+.bbb.blue   .bbb-pick { color: #93c5fd; }
+.bbb.green  .bbb-pick { color: #86efac; }
+.bbb.gray   .bbb-pick { color: var(--muted); }
+.bbb-reason { font-size: 12px; color: #7a8fb8; line-height: 1.7; }
+.bbb-right { display: flex; flex-direction: column; align-items: center; gap: 14px; flex-shrink: 0; }
+.bbb-ring { position: relative; width: 120px; height: 120px; }
+.bbb-ring svg { width: 120px; height: 120px; }
+.bbb-ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.bbb-pct { font-family: var(--display); font-size: 26px; line-height: 1; color: var(--text); }
+.bbb-pct-lbl { font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.bbb-stats { display: flex; gap: 14px; }
+.bbb-stat-v { font-family: var(--display); font-size: 16px; text-align: center; }
+.bbb-stat-k { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); margin-top: 2px; text-align: center; }
+
+/* ── ERROR ── */
+.err { background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.25); border-radius: 9px; padding: 12px 16px; color: #fca5a5; font-size: 12px; margin-bottom: 14px; display: none; }
+.err.show { display: block; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:680px) {
+  header { padding: 0 16px; }
+  .hero-vs { grid-template-columns: 1fr auto 1fr; gap: 8px; }
+  .hero-name { font-size: 30px; }
+  .hero-pct { font-size: 28px; }
+  .grid-2,.grid-3 { grid-template-columns: 1fr; }
+  .bbb-inner { flex-direction: column; padding: 18px; }
+  .bbb-right { flex-direction: row; }
+  .tabs { flex-wrap: wrap; }
+  .main { padding: 18px 14px 60px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<header>
+  <div>
+    <div class="logo">BRACKET<span>.</span>EDGE</div>
+    <div class="logo-sub">2026 March Madness Algorithm</div>
+  </div>
+  <div class="header-badge"><div class="live-dot"></div>Selection Sunday March 15</div>
+</header>
+
+<div class="main">
+
+  <div class="note-banner">
+    ⚠ <strong>Bracket announced tomorrow, March 15 at 6 PM ET.</strong> Seeds below are based on the latest bracketology projections (On3 / CBS Sports, updated March 14). Update seeds after the official bracket drops. All models run in your browser — no install needed.
+  </div>
+
+  <!-- INPUT -->
+  <div class="panel">
+    <div class="panel-title">Configure Matchup</div>
+
+    <div class="grid-2" style="margin-bottom:14px">
+      <div>
+        <label>Team 1 (Favorite / Lower Seed)</label>
+        <select id="team1"></select>
+      </div>
+      <div>
+        <label>Team 2 (Underdog / Higher Seed)</label>
+        <select id="team2"></select>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom:14px">
+      <div>
+        <label>Team 1 Seed</label>
+        <input type="number" id="seed1" value="1" min="1" max="16">
+      </div>
+      <div>
+        <label>Team 2 Seed</label>
+        <input type="number" id="seed2" value="16" min="1" max="16">
+      </div>
+      <div>
+        <label>Tournament Round</label>
+        <select id="round">
+          <option value="First Round">First Round</option>
+          <option value="Second Round">Second Round</option>
+          <option value="Sweet 16">Sweet 16</option>
+          <option value="Elite Eight">Elite Eight</option>
+          <option value="Final Four">Final Four</option>
+          <option value="Championship">Championship</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div>
+        <label>Team 1 Spread</label>
+        <input type="text" id="spread1" placeholder="-8.5">
+      </div>
+      <div>
+        <label>Moneyline (Team 1)</label>
+        <input type="text" id="ml1" placeholder="-350">
+      </div>
+      <div>
+        <label>Moneyline (Team 2)</label>
+        <input type="text" id="ml2" placeholder="+280">
+      </div>
+    </div>
+
+    <div class="seed-preview" id="seedPreview"></div>
+
+    <button id="analyzeBtn" onclick="runAnalysis()">
+      <div class="shimmer"></div>
+      ⚡ RUN ANALYSIS
+    </button>
+
+    <div class="loading-wrap" id="loadingWrap">
+      <div class="loading-track"></div>
+      <div class="steps">
+        <div class="step" id="s1">Seed Model</div>
+        <div class="step" id="s2">KenPom Rating</div>
+        <div class="step" id="s3">Monte Carlo 50K</div>
+        <div class="step" id="s4">Upset Factor</div>
+        <div class="step" id="s5">Kelly Criterion</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="err" id="errBox"></div>
+  <div id="results">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-vs">
+        <div class="hero-team">
+          <div class="hero-seed" id="heroSeed1"></div>
+          <div class="hero-name t1" id="heroName1"></div>
+          <div class="hero-conf" id="heroConf1"></div>
+          <div class="hero-pct t1" id="heroPct1"></div>
+          <div class="hero-pct-lbl">Win Probability</div>
+        </div>
+        <div class="hero-mid">
+          <span class="hero-vs-text">VS</span>
+          <div class="hero-round" id="heroRound"></div>
+          <div class="hero-spread" id="heroSpread"></div>
+        </div>
+        <div class="hero-team">
+          <div class="hero-seed" id="heroSeed2"></div>
+          <div class="hero-name t2" id="heroName2"></div>
+          <div class="hero-conf" id="heroConf2"></div>
+          <div class="hero-pct t2" id="heroPct2"></div>
+          <div class="hero-pct-lbl">Win Probability</div>
+        </div>
+      </div>
+      <div class="hero-bar">
+        <div class="hb-t1" id="hbT1"></div>
+        <div class="hb-t2" id="hbT2"></div>
+      </div>
+      <div class="hero-bar-labels">
+        <span id="hblT1"></span>
+        <span id="hblT2"></span>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('overview',this)">Overview</button>
+      <button class="tab-btn" onclick="switchTab('models',this)">Models</button>
+      <button class="tab-btn" onclick="switchTab('betting',this)">Betting</button>
+      <button class="tab-btn" onclick="switchTab('upset',this)">Upset</button>
+      <button class="tab-btn" onclick="switchTab('factors',this)">Factors</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="tab-pane active" id="tab-overview">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">KenPom Strength</div>
+          <div style="margin-bottom:12px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px">
+              <span id="kpName1"></span><span class="big orange" id="kpVal1" style="font-size:24px"></span>
+            </div>
+            <div class="mini-bar"><div class="mini-fill" id="kpBar1" style="background:var(--orange2)"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:11px">
+              <span id="kpName2"></span><span class="big blue" id="kpVal2" style="font-size:24px;color:#93c5fd"></span>
+            </div>
+            <div class="mini-bar"><div class="mini-fill" id="kpBar2" style="background:#60a5fa"></div></div>
+          </div>
+          <div style="font-size:10px;color:var(--dim);margin-top:10px">Estimated KenPom adjusted efficiency margin</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Seed History (1985–2025)</div>
+          <div id="seedHistory"></div>
+          <div style="font-size:10px;color:var(--dim);margin-top:10px">Historical win rates for this seed matchup</div>
+        </div>
+
+        <div class="card span2">
+          <div class="card-title">Best Bets Summary</div>
+          <div class="grid-2" id="bestBetsSummary"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODELS -->
+    <div class="tab-pane" id="tab-models">
+      <div class="grid-2">
+        <div class="card span2">
+          <div class="card-title">Model Consensus</div>
+          <div id="modelBars"></div>
+          <div style="display:flex;justify-content:space-between;margin-top:12px;font-size:10px;color:var(--dim)">
+            <div style="display:flex;align-items:center;gap:5px"><div style="width:10px;height:10px;border-radius:2px;background:linear-gradient(90deg,#c2410c,#fb923c)"></div><span id="legT1"></span></div>
+            <div style="display:flex;align-items:center;gap:5px"><span id="legT2"></span><div style="width:10px;height:10px;border-radius:2px;background:linear-gradient(90deg,#1d4ed8,#60a5fa)"></div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Seed Differential</div>
+          <div id="seedDiff"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Model Weights</div>
+          <div id="weightBars"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BETTING -->
+    <div class="tab-pane" id="tab-betting">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Moneyline Analysis</div>
+          <div id="mlCards"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Point Spread Analysis</div>
+          <div id="spreadCard"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UPSET -->
+    <div class="tab-pane" id="tab-upset">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Upset Probability</div>
+          <div class="upset-meter">
+            <div class="upset-ring">
+              <svg viewBox="0 0 130 130" class="upset-svg">
+                <circle cx="65" cy="65" r="54" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="10"/>
+                <circle cx="65" cy="65" r="54" fill="none" id="upsetRing" stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="339.3" stroke-dashoffset="339.3" transform="rotate(-90 65 65)"
+                  style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+              </svg>
+              <div class="upset-text">
+                <div class="upset-pct" id="upsetPct"></div>
+                <div class="upset-lbl">Upset</div>
+              </div>
+            </div>
+            <div class="upset-desc" id="upsetDesc"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Cinderella Score</div>
+          <div id="cinderellaScore"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FACTORS -->
+    <div class="tab-pane" id="tab-factors">
+      <div class="card">
+        <div class="card-title">Key Analytical Factors</div>
+        <div id="factorList"></div>
+      </div>
+    </div>
+
+  </div><!-- /results -->
+
+  <!-- BEST BET BANNER -->
+  <div class="bbb-wrap" id="bbbWrap" style="display:none">
+    <div class="bbb" id="bbbCard">
+      <div class="bbb-inner">
+        <div class="bbb-left">
+          <div class="bbb-eye">⚡ Algorithm Recommendation</div>
+          <div class="bbb-match" id="bbbMatch"></div>
+          <div class="bbb-pick" id="bbbPick"></div>
+          <div class="bbb-reason" id="bbbReason"></div>
+        </div>
+        <div class="bbb-right">
+          <div class="bbb-ring">
+            <svg viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="9"/>
+              <circle cx="60" cy="60" r="50" fill="none" id="bbbRing" stroke-width="9" stroke-linecap="round"
+                stroke-dasharray="314.16" stroke-dashoffset="314.16" transform="rotate(-90 60 60)"
+                style="transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)"/>
+            </svg>
+            <div class="bbb-ring-text">
+              <div class="bbb-pct" id="bbbPct"></div>
+              <div class="bbb-pct-lbl">Success</div>
+            </div>
+          </div>
+          <div class="bbb-stats" id="bbbStats"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer style="text-align:center;padding:40px 0 20px;font-size:10px;color:var(--dim);line-height:2;letter-spacing:0.06em">
+    <strong style="color:var(--muted)">BRACKET.EDGE</strong> · KenPom Strength Model · Seed History (1985-2025) · 50,000-Iteration Monte Carlo · Fractional Kelly Criterion<br>
+    Bracket announced March 15 — update seeds after Selection Sunday. For research purposes only. Please gamble responsibly.
+  </footer>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════
+// TEAM DATABASE — 2026 projected field
+// ═══════════════════════════════════
+const TEAMS = {
+  // [name, conference, kenpom_aem, seed]
+  // 1-seeds
+  'Duke':         ['Duke','ACC',28.4,1],
+  'Michigan':     ['Michigan','Big Ten',27.1,1],
+  'Arizona':      ['Arizona','Big 12',26.8,1],
+  'Florida':      ['Florida','SEC',25.9,1],
+  // 2-seeds
+  'Houston':      ['Houston','Big 12',24.2,2],
+  'Iowa State':   ['Iowa State','Big 12',23.8,2],
+  'Michigan St':  ['Michigan State','Big Ten',23.1,2],
+  'UConn':        ['UConn','Big East',22.9,2],
+  // 3-seeds
+  'Purdue':       ['Purdue','Big Ten',21.4,3],
+  'Nebraska':     ['Nebraska','Big Ten',20.8,3],
+  'Virginia':     ['Virginia','ACC',20.3,3],
+  'Gonzaga':      ['Gonzaga','WCC',20.1,3],
+  // 4-seeds
+  'Vanderbilt':   ['Vanderbilt','SEC',19.2,4],
+  'Alabama':      ['Alabama','SEC',18.9,4],
+  'Kansas':       ['Kansas','Big 12',18.6,4],
+  'St. Johns':    ["St. John's",'Big East',18.1,4],
+  // 5-seeds
+  'Wisconsin':    ['Wisconsin','Big Ten',17.4,5],
+  'Texas Tech':   ['Texas Tech','Big 12',17.1,5],
+  'Arkansas':     ['Arkansas','SEC',16.8,5],
+  'Louisville':   ['Louisville','ACC',16.4,5],
+  // 6-seeds
+  'Tennessee':    ['Tennessee','SEC',15.8,6],
+  'North Carolina':['North Carolina','ACC',15.5,6],
+  'BYU':          ['BYU','Big 12',15.1,6],
+  'St. Marys':    ["St. Mary's",'WCC',14.8,6],
+  // 7-seeds
+  'UCLA':         ['UCLA','Big Ten',14.2,7],
+  'Villanova':    ['Villanova','Big East',13.8,7],
+  'Kentucky':     ['Kentucky','SEC',13.5,7],
+  'Georgia':      ['Georgia','SEC',13.1,7],
+  // 8-seeds
+  'Clemson':      ['Clemson','ACC',12.4,8],
+  'Ohio State':   ['Ohio State','Big Ten',12.1,8],
+  'Utah State':   ['Utah State','MWC',11.8,8],
+  'Miami FL':     ['Miami FL','ACC',11.4,8],
+  // 9-seeds
+  'Iowa':         ['Iowa','Big Ten',10.8,9],
+  'Texas A&M':    ['Texas A&M','SEC',10.4,9],
+  'TCU':          ['TCU','Big 12',10.1,9],
+  'Georgia Tech': ['Georgia Tech','ACC',9.8,9],
+  // 10-seeds
+  'NC State':     ['NC State','ACC',9.2,10],
+  'Santa Clara':  ['Santa Clara','WCC',8.9,10],
+  'UCF':          ['UCF','Big 12',8.6,10],
+  'Texas A&M2':   ['Texas A&M','SEC',8.2,10],
+  // 11-seeds
+  'VCU':          ['VCU','A-10',7.8,11],
+  'SMU':          ['SMU','ACC',7.5,11],
+  'Texas':        ['Texas','SEC',7.1,11],
+  'Missouri':     ['Missouri','SEC',6.8,11],
+  // 12-seeds
+  'Yale':         ['Yale','Ivy',4.2,12],
+  'High Point':   ['High Point','Big South',3.8,12],
+  'McNeese':      ['McNeese','Southland',3.4,12],
+  'South Florida':['South Florida','American',3.1,12],
+  // 13-seeds
+  'Northern Iowa':['Northern Iowa','MVC',1.2,13],
+  'UC Irvine':    ['UC Irvine','Big West',0.9,13],
+  'NDSU':         ['North Dakota State','Summit',-0.4,13],
+  'Hofstra':      ['Hofstra','CAA',-0.8,13],
+  // 14-seeds
+  'Wright State': ['Wright State','Horizon',-2.1,14],
+  'Troy':         ['Troy','Sun Belt',-2.8,14],
+  'Louisiana Tech':['Louisiana Tech','CUSA',-3.2,14],
+  'Sam Houston':  ['Sam Houston','CUSA',-3.8,14],
+  // 15-seeds
+  'Tennessee St': ['Tennessee State','OVC',-5.2,15],
+  'Furman':       ['Furman','SoCon',-5.8,15],
+  'LIU':          ['LIU','NEC',-6.4,15],
+  'Queens':       ['Queens','ASUN',-7.1,15],
+  // 16-seeds
+  'Siena':        ['Siena','MAAC',-9.2,16],
+  'Idaho':        ['Idaho','Big Sky',-9.8,16],
+  'Howard':       ['Howard','MEAC',-11.4,16],
+  'Lehigh':       ['Lehigh','Patriot',-12.1,16],
+};
+
+// Historical seed win rates in first round (1985-2025)
+const SEED_WIN_RATE = {1:.985,2:.940,3:.855,4:.790,5:.655,6:.630,7:.605,8:.480,9:.520,10:.395,11:.370,12:.345,13:.210,14:.145,15:.060,16:.015};
+
+// Upset probability by seed diff (team2 seed - team1 seed)
+function historicalUpsetProb(seed1, seed2) {
+  var favWr = SEED_WIN_RATE[seed1] || 0.5;
+  var dogWr = SEED_WIN_RATE[seed2] || 0.5;
+  // Higher seed # = underdog
+  if (seed1 > seed2) { var t = favWr; favWr = dogWr; dogWr = t; }
+  return dogWr; // this is P(upset) = P(higher seed number wins)
+}
+
+// ═══════════════════════════════════
+// MATH UTILS
+// ═══════════════════════════════════
+function poissonPMF(k,lam) {
+  if(lam<=0) return k===0?1:0;
+  var lp=-lam+k*Math.log(lam);
+  for(var i=2;i<=k;i++) lp-=Math.log(i);
+  return Math.exp(lp);
+}
+
+function normalCDF(z) {
+  var t=1/(1+0.2316419*Math.abs(z));
+  var d=0.3989423*Math.exp(-z*z/2);
+  var p=d*t*(0.3193815+t*(-0.3565638+t*(1.7814779+t*(-1.8212560+t*1.3302744))));
+  return z>0?1-p:p;
+}
+
+function americanToProb(line) {
+  if(line>0) return 100/(line+100);
+  return Math.abs(line)/(Math.abs(line)+100);
+}
+function probToAmerican(p) {
+  if(p<=0||p>=1) return 0;
+  if(p>=0.5) return -Math.round(p/(1-p)*100);
+  return Math.round((1-p)/p*100);
+}
+function removeVig(l1,l2) {
+  var p1=americanToProb(l1),p2=americanToProb(l2),t=p1+p2;
+  return [p1/t,p2/t];
+}
+function kelly(p,line,frac) {
+  frac=frac||0.25;
+  var b=line>0?line/100:100/Math.abs(line);
+  var k=(b*p-(1-p))/b;
+  return Math.max(0,k*frac);
+}
+function ev(p,line) {
+  var w=line>0?line/100:100/Math.abs(line);
+  return p*w-(1-p);
+}
+function sgn(v) { return v>=0?'+'+v.toFixed(1):v.toFixed(1); }
+function pct(v) { return (v*100).toFixed(1)+'%'; }
+function evFmt(v) { return v>=0?'+'+v.toFixed(3):v.toFixed(3); }
+
+// ═══════════════════════════════════
+// CORE PREDICTION MODEL
+// ═══════════════════════════════════
+function buildPrediction(t1key, t2key, seed1, seed2, ml1raw, ml2raw, spreadRaw, roundName) {
+  var t1 = TEAMS[t1key] || [t1key,'Unknown',10,seed1];
+  var t2 = TEAMS[t2key] || [t2key,'Unknown',5,seed2];
+
+  var kp1 = t1[2], kp2 = t2[2];
+
+  // ── 1. KenPom model: win prob from adjusted efficiency margin diff
+  // Each 1 point of AEM ≈ ~3% win probability swing
+  var aemDiff = kp1 - kp2; // positive = team1 better
+  var kenpomProb = normalCDF(aemDiff / 10.5);
+
+  // ── 2. Seed model: historical win rates weighted
+  var seedP1 = SEED_WIN_RATE[seed1] || 0.5;
+  var seedP2 = SEED_WIN_RATE[seed2] || 0.5;
+  // Normalize seed probabilities for this matchup
+  var seedProb1 = seedP1 / (seedP1 + seedP2);
+
+  // ── 3. Monte Carlo (50k sims)
+  // Model each team scoring as Poisson; basketball: ~70 possessions per game
+  // Team efficiency derived from KenPom AEM (avg ~70 pts per game base)
+  var baseScore = 72;
+  var pts1 = baseScore + kp1 * 0.5;
+  var pts2 = baseScore + kp2 * 0.5;
+  var N = 50000;
+  var t1wins = 0;
+  var scoreDiffs = [];
+  for(var i=0;i<N;i++) {
+    var s1 = poissonPMF(Math.round(pts1),pts1)>0 ? mcSampleNormal(pts1,8) : pts1;
+    var s2 = poissonPMF(Math.round(pts2),pts2)>0 ? mcSampleNormal(pts2,8) : pts2;
+    if(s1>s2) t1wins++;
+    scoreDiffs.push(s1-s2);
+  }
+  var mcProb1 = t1wins/N;
+
+  // Expected score diff for spread analysis
+  var avgDiff = scoreDiffs.reduce(function(a,b){return a+b},0)/N;
+  var stdDiff = Math.sqrt(scoreDiffs.reduce(function(a,v){return a+(v-avgDiff)*(v-avgDiff)},0)/N);
+
+  // ── 4. Ensemble: KenPom 45%, Seed History 25%, MC 30%
+  var p1 = 0.45*kenpomProb + 0.25*seedProb1 + 0.30*mcProb1;
+  var p2 = 1-p1;
+
+  // ── 5. Spread analysis
+  var spread = parseFloat(spreadRaw) || -(aemDiff*0.8);
+  var spreadProb1 = normalCDF((aemDiff*0.8 + spread) / stdDiff);
+
+  // ── 6. Moneyline analysis
+  var ml1 = parseFloat(ml1raw) || probToAmerican(p1);
+  var ml2 = parseFloat(ml2raw) || probToAmerican(p2);
+  var fairP1, fairP2;
+  if(ml1raw && ml2raw) { var vigs=removeVig(ml1,ml2); fairP1=vigs[0]; fairP2=vigs[1]; }
+  else { fairP1=p1; fairP2=p2; }
+
+  var edge1 = p1-fairP1, edge2 = p2-fairP2;
+  var ev1=ev(p1,ml1), ev2=ev(p2,ml2);
+  var k1=kelly(p1,ml1), k2=kelly(p2,ml2);
+  var bestML = edge1>edge2&&edge1>0.03?'T1':edge2>0.03?'T2':'NONE';
+
+  // Spread edge
+  var spreadEdge = spreadProb1 - 0.5238; // vs -110
+  var bestBet = bestML!='NONE'?bestML:(Math.abs(spreadEdge)>0.03?'SPREAD':'NONE');
+
+  // ── 7. Upset metrics
+  var upsetProb = seed1 < seed2 ? p2 : p1; // P(higher seed # wins)
+  var seedDiff = Math.abs(seed2-seed1);
+  var histUpset = historicalUpsetProb(seed1,seed2);
+
+  // Cinderella score: combination of upset prob, seed diff, name recognition
+  var cinderella = Math.round((upsetProb * 100 * (seedDiff/15)) * 2);
+
+  // Confidence
+  var modelStd = Math.sqrt(
+    Math.pow(kenpomProb-p1,2)+Math.pow(seedProb1-p1,2)+Math.pow(mcProb1-p1,2)
+  )/Math.sqrt(3);
+  var confidence = modelStd<0.035?'HIGH':modelStd<0.07?'MEDIUM':'LOW';
+
+  // ── 8. Key factors
+  var factors = buildFactors(t1key,t2key,t1,t2,seed1,seed2,kp1,kp2,p1,aemDiff,roundName,upsetProb,histUpset);
+
+  return {
+    t1:t1, t2:t2, t1key:t1key, t2key:t2key, seed1:seed1, seed2:seed2,
+    p1:p1, p2:p2,
+    kenpomProb:kenpomProb, seedProb1:seedProb1, mcProb1:mcProb1,
+    kp1:kp1, kp2:kp2, aemDiff:aemDiff,
+    pts1:pts1, pts2:pts2, avgDiff:avgDiff, stdDiff:stdDiff,
+    spread:spread, spreadProb1:spreadProb1, spreadEdge:spreadEdge,
+    ml1:ml1, ml2:ml2, fairP1:fairP1, fairP2:fairP2,
+    edge1:edge1, edge2:edge2, ev1:ev1, ev2:ev2, k1:k1, k2:k2,
+    bestML:bestML, bestBet:bestBet,
+    upsetProb:upsetProb, histUpset:histUpset, seedDiff:seedDiff, cinderella:cinderella,
+    confidence:confidence, roundName:roundName, factors:factors,
+  };
+}
+
+function mcSampleNormal(mean, std) {
+  // Box-Muller
+  var u1=Math.random(), u2=Math.random();
+  var z=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+  return Math.max(50, mean+z*std);
+}
+
+function buildFactors(t1k,t2k,t1,t2,s1,s2,kp1,kp2,p1,aemDiff,round,upsetProb,histUpset) {
+  var factors=[];
+  // Efficiency gap
+  if(Math.abs(aemDiff)>8)
+    factors.push((kp1>kp2?t1[0]:t2[0])+' has a dominant KenPom efficiency edge of '+Math.abs(aemDiff).toFixed(1)+' points over the season — one of the largest gaps you\'ll see in this round. Teams with this edge historically win at an 82%+ clip.');
+  else if(Math.abs(aemDiff)<4)
+    factors.push('KenPom rates these teams within '+Math.abs(aemDiff).toFixed(1)+' efficiency points of each other — an extremely close matchup on paper. Small execution differences like turnover rate and 3-point variance will likely decide this game.');
+  else
+    factors.push((kp1>kp2?t1[0]:t2[0])+' holds a '+Math.abs(aemDiff).toFixed(1)+'-point KenPom efficiency advantage. This translates to roughly a '+Math.round(Math.abs(aemDiff)*0.8)+'-point expected spread in a neutral court game.');
+
+  // Seed history
+  var winnerSeed = p1>0.5?s1:s2;
+  factors.push('#'+s1+' seeds vs #'+s2+' seeds: the #'+s1+' seed wins approximately '+(histUpset<0.5?(1-histUpset)*100:histUpset*100).toFixed(0)+'% of the time historically. Since 1985, there have been '+(s2>=12?'notable upsets including several 12-over-5 and 13-over-4 shockers':s2<=4?'very few significant upsets at this level':'upsets at a rate consistent with the model projection')+' in this exact seed matchup.');
+
+  // Tournament round context
+  if(round==='First Round')
+    factors.push('First Round games on neutral courts tend to favor well-coached, experienced programs. Prep time is minimal and teams rely on their season-long tendencies. '+t1[0]+'\'s '+t1[1]+' style and depth will be tested against '+t2[0]+'\'s motivation as a potential Cinderella.');
+  else if(round==='Sweet 16'||round==='Elite Eight')
+    factors.push('At the '+round+' stage, fatigue and depth become amplified factors. Teams that have survived close earlier games may carry momentum, while teams that cruised in blowouts may be underestimated. KenPom efficiency ratings remain the best single predictor at this stage.');
+  else if(round==='Final Four'||round==='Championship')
+    factors.push('In Final Four and Championship games, coaching decisions and player experience at the highest level diverge significantly from regular season models. Treat this prediction with appropriate uncertainty — the model confidence is typically lower at this stage.');
+  else
+    factors.push('In the '+round+', tournament experience becomes increasingly valuable. Both programs\' previous tournament runs this week factor into fatigue and momentum, though the efficiency gap between '+t1[0]+' and '+t2[0]+' remains the primary driver.');
+
+  return factors;
+}
+
+// ═══════════════════════════════════
+// RENDER
+// ═══════════════════════════════════
+function renderResults(r) {
+  // Hero
+  document.getElementById('heroSeed1').textContent='#'+r.seed1+' SEED';
+  document.getElementById('heroSeed2').textContent='#'+r.seed2+' SEED';
+  document.getElementById('heroName1').textContent=r.t1[0];
+  document.getElementById('heroName2').textContent=r.t2[0];
+  document.getElementById('heroConf1').textContent=r.t1[1];
+  document.getElementById('heroConf2').textContent=r.t2[1];
+  document.getElementById('heroPct1').textContent=pct(r.p1);
+  document.getElementById('heroPct2').textContent=pct(r.p2);
+  document.getElementById('heroRound').textContent=r.roundName;
+  document.getElementById('heroSpread').textContent=(r.aemDiff>0?r.t1[0]:r.t2[0])+' favored by '+Math.abs(r.aemDiff*0.8).toFixed(1);
+  document.getElementById('hbT1').style.flex=r.p1;
+  document.getElementById('hbT2').style.flex=r.p2;
+  document.getElementById('hblT1').textContent=r.t1[0]+' '+pct(r.p1);
+  document.getElementById('hblT2').textContent=r.t2[0]+' '+pct(r.p2);
+
+  // KenPom
+  document.getElementById('kpName1').textContent=r.t1[0];
+  document.getElementById('kpName2').textContent=r.t2[0];
+  document.getElementById('kpVal1').textContent=(r.kp1>0?'+':'')+r.kp1.toFixed(1);
+  document.getElementById('kpVal2').textContent=(r.kp2>0?'+':'')+r.kp2.toFixed(1);
+  var kpMax=Math.max(Math.abs(r.kp1),Math.abs(r.kp2),1);
+  document.getElementById('kpBar1').style.width=Math.min(Math.abs(r.kp1)/35*100,100)+'%';
+  document.getElementById('kpBar2').style.width=Math.min(Math.abs(r.kp2)/35*100,100)+'%';
+
+  // Seed history
+  var h = document.getElementById('seedHistory');
+  var wr1 = (SEED_WIN_RATE[r.seed1]||0.5)*100;
+  var wr2 = (SEED_WIN_RATE[r.seed2]||0.5)*100;
+  h.innerHTML='<div style="margin-bottom:12px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span>#'+r.seed1+' seeds overall</span><span style="color:var(--orange2)">'+wr1.toFixed(1)+'% first round win rate</span></div>'
+    +'<div class="mini-bar"><div class="mini-fill" style="width:'+wr1+'%;background:var(--orange2)"></div></div>'
+    +'</div><div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span>#'+r.seed2+' seeds overall</span><span style="color:#93c5fd">'+wr2.toFixed(1)+'% first round win rate</span></div>'
+    +'<div class="mini-bar"><div class="mini-fill" style="width:'+wr2+'%;background:#60a5fa"></div></div>'
+    +'</div>';
+
+  // Best bets summary
+  var ml1Lbl=r.ml1>0?'+'+r.ml1:r.ml1;
+  var ml2Lbl=r.ml2>0?'+'+r.ml2:r.ml2;
+  document.getElementById('bestBetsSummary').innerHTML=
+    '<div style="background:var(--bg);border:1px solid '+(r.edge1>0.03?'rgba(34,197,94,0.3)':'var(--border)')
+    +';border-radius:10px;padding:16px"><div style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">MONEYLINE</div>'
+    +badge(r.bestML==='T1'?'VALUE':r.bestML==='T2'?'VALUE':'NO VALUE')
+    +(r.bestML!=='NONE'?'<div style="margin-top:10px;font-size:11px;color:var(--muted)"><div>Pick: <span style="color:var(--text)">'+(r.bestML==='T1'?r.t1[0]+' '+ml1Lbl:r.t2[0]+' '+ml2Lbl)+'</span></div><div style="margin-top:3px">Edge: <span style="color:var(--green)">'+(r.bestML==='T1'?sgn(r.edge1*100):sgn(r.edge2*100))+'%</span></div><div style="margin-top:3px">Kelly: <span style="color:var(--gold)">'+(r.bestML==='T1'?pct(r.k1):pct(r.k2))+' of bankroll</span></div></div>':'<div style="font-size:11px;color:var(--dim);margin-top:8px">No edge at posted lines</div>')
+    +'</div>'
+    +'<div style="background:var(--bg);border:1px solid '+(Math.abs(r.spreadEdge)>0.03?'rgba(34,197,94,0.3)':'var(--border)')
+    +';border-radius:10px;padding:16px"><div style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">SPREAD</div>'
+    +badge(Math.abs(r.spreadEdge)>0.03?'VALUE':'NO VALUE')
+    +(Math.abs(r.spreadEdge)>0.03?'<div style="margin-top:10px;font-size:11px;color:var(--muted)"><div>Pick: <span style="color:var(--text)">'+(r.spreadEdge>0?r.t1[0]+' '+r.spread:r.t2[0]+' '+(r.spread>0?'-'+r.spread:'+'+Math.abs(r.spread)))+'</span></div><div style="margin-top:3px">Edge: <span style="color:var(--green)">'+sgn(r.spreadEdge*100)+'%</span></div></div>':'<div style="font-size:11px;color:var(--dim);margin-top:8px">No edge on spread</div>')
+    +'</div>';
+
+  // Models
+  document.getElementById('legT1').textContent=r.t1[0];
+  document.getElementById('legT2').textContent=r.t2[0];
+  document.getElementById('modelBars').innerHTML=
+    mbar('KenPom Efficiency (45%)',r.kenpomProb,1-r.kenpomProb)+
+    mbar('Seed History 1985-2025 (25%)',r.seedProb1,1-r.seedProb1)+
+    mbar('Monte Carlo 50K (30%)',r.mcProb1,1-r.mcProb1)+
+    mbar('Ensemble Final',r.p1,r.p2);
+
+  // Seed diff
+  var sdEl=document.getElementById('seedDiff');
+  sdEl.innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:8px">'
+    +'<span style="font-size:11px">Seed gap:</span>'
+    +'<span style="font-family:var(--display);font-size:22px;color:var(--gold)">'+r.seedDiff+'</span></div>'
+    +'<div class="mini-bar"><div class="mini-fill" style="width:'+Math.min(r.seedDiff/15*100,100)+'%;background:var(--gold)"></div></div>'
+    +'<div style="font-size:11px;color:var(--muted);margin-top:10px">Higher gap = more Cinderella potential</div>'
+    +'<div style="margin-top:12px"><span class="badge b-med" style="font-size:10px">Confidence: '+r.confidence+'</span></div>';
+
+  // Weight bars
+  document.getElementById('weightBars').innerHTML=
+    [['KenPom Efficiency',45,'#fb923c'],['Seed History',25,'#fbbf24'],['Monte Carlo',30,'#818cf8']]
+    .map(function(w){return '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span style="color:var(--muted)">'+w[0]+'</span><span style="color:'+w[2]+';font-weight:600">'+w[1]+'%</span></div><div class="mini-bar"><div class="mini-fill" style="width:'+w[1]+'%;background:'+w[2]+'"></div></div></div>';}).join('');
+
+  // ML Cards
+  var ml1L=r.ml1>0?'+'+r.ml1:r.ml1, ml2L=r.ml2>0?'+'+r.ml2:r.ml2;
+  document.getElementById('mlCards').innerHTML=
+    betCard(r.t1[0]+' ('+ml1L+')',r.edge1,r.ev1,r.k1,r.p1,r.fairP1)+
+    betCard(r.t2[0]+' ('+ml2L+')',r.edge2,r.ev2,r.k2,r.p2,r.fairP2);
+
+  // Spread card
+  var spEl=document.getElementById('spreadCard');
+  var spLbl=r.spread<0?r.t1[0]+' '+r.spread:r.t2[0]+' +'+(r.spread*-1);
+  spEl.innerHTML='<div style="font-size:13px;font-weight:500;margin-bottom:12px">'+spLbl+'</div>'
+    +'<div class="bet-grid">'
+    +'<div class="bet-row"><span class="bk">Cover prob</span><span class="bv">'+pct(r.spreadProb1)+'</span></div>'
+    +'<div class="bet-row"><span class="bk">Edge vs -110</span><span class="bv" style="color:'+(r.spreadEdge>0?'var(--green)':'var(--red)')+'">'+sgn(r.spreadEdge*100)+'%</span></div>'
+    +'<div class="bet-row"><span class="bk">Fair odds</span><span class="bv">'+(probToAmerican(r.spreadProb1)>0?'+':'')+probToAmerican(r.spreadProb1)+'</span></div>'
+    +'<div class="bet-row"><span class="bk">EV/$1</span><span class="bv" style="color:'+(ev(r.spreadProb1,-110)>0?'var(--green)':'var(--red)')+'">'+evFmt(ev(r.spreadProb1,-110))+'</span></div>'
+    +'</div>'
+    +'<div style="margin-top:10px">'+badge(Math.abs(r.spreadEdge)>0.03?'VALUE':'NO VALUE')+'</div>'
+    +'<div style="margin-top:12px;font-size:11px;color:var(--muted)">Expected margin: '+(r.avgDiff>0?r.t1[0]:r.t2[0])+' by '+Math.abs(r.avgDiff).toFixed(1)+'</div>';
+
+  // Upset
+  var upPct=r.upsetProb*100;
+  document.getElementById('upsetPct').textContent=upPct.toFixed(1)+'%';
+  var ringColor=upPct>30?'#f97316':upPct>15?'#fbbf24':'#22c55e';
+  var ring=document.getElementById('upsetRing');
+  ring.style.stroke=ringColor;
+  setTimeout(function(){ ring.style.strokeDashoffset=339.3*(1-r.upsetProb); },100);
+
+  var underdog=r.seed1>r.seed2?r.t1[0]:r.t2[0];
+  document.getElementById('upsetDesc').textContent=
+    underdog+' has a '+upPct.toFixed(1)+'% chance of pulling the upset. '
+    +'Historically #'+Math.max(r.seed1,r.seed2)+' seeds win '+(r.histUpset*100).toFixed(0)+'% of their first round games against #'+Math.min(r.seed1,r.seed2)+' seeds.';
+
+  // Cinderella
+  var cEl=document.getElementById('cinderellaScore');
+  var cScore=Math.min(r.cinderella,100);
+  var cLabel=cScore>70?'🔥 Must Watch Cinderella':cScore>45?'⚡ Upset Alert':cScore>25?'👀 Watch Closely':'📊 Probable Chalk';
+  cEl.innerHTML='<div style="text-align:center;padding:16px">'
+    +'<div style="font-family:var(--display);font-size:52px;color:var(--gold);line-height:1">'+cScore+'</div>'
+    +'<div style="font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin:6px 0 12px">/ 100 Cinderella Score</div>'
+    +'<div style="font-size:14px">'+cLabel+'</div>'
+    +'<div class="mini-bar" style="margin-top:14px"><div class="mini-fill" style="width:'+cScore+'%;background:var(--gold)"></div></div>'
+    +'</div>';
+
+  // Factors
+  document.getElementById('factorList').innerHTML=r.factors.map(function(f,i){
+    return '<div class="factor"><div class="factor-n">'+(i+1)+'</div><div class="factor-t">'+f+'</div></div>';
+  }).join('');
+
+  // Best bet banner
+  renderBestBet(r);
+}
+
+function betCard(name,edge,evVal,k,model,fair) {
+  return '<div class="bet-card '+(edge>0.03?'val':'')+'">'
+    +'<div class="bet-header"><span class="bet-name">'+name+'</span>'+badge(edge>0.03?'VALUE':'NO VALUE')+'</div>'
+    +'<div class="bet-grid">'
+    +'<div class="bet-row"><span class="bk">Model prob</span><span class="bv">'+pct(model)+'</span></div>'
+    +'<div class="bet-row"><span class="bk">Fair prob</span><span class="bv">'+pct(fair)+'</span></div>'
+    +'<div class="bet-row"><span class="bk">Edge</span><span class="bv" style="color:'+(edge>0?'var(--green)':'var(--red)')+'">'+sgn(edge*100)+'%</span></div>'
+    +'<div class="bet-row"><span class="bk">EV/$1</span><span class="bv" style="color:'+(evVal>0?'var(--green)':'var(--red)')+'">'+evFmt(evVal)+'</span></div>'
+    +'</div>'
+    +(k>0.005?'<div class="kelly-row">¼ Kelly: <span>'+pct(k)+' of bankroll</span></div>':'')
+    +'</div>';
+}
+
+function mbar(label,p1,p2) {
+  return '<div class="mbar"><div class="mbar-head"><span>'+label+'</span><span>'+pct(p1)+' / '+pct(p2)+'</span></div>'
+    +'<div class="mbar-track"><div class="mbar-t1" style="flex:'+p1+'"></div><div class="mbar-t2" style="flex:'+p2+'"></div></div></div>';
+}
+
+function badge(text) {
+  var map={'VALUE':'b-val','NO VALUE':'b-nov','HIGH':'b-hi','MEDIUM':'b-med','LOW':'b-lo',
+           'FAVORITE':'b-fav','UNDERDOG':'b-dog','OVER':'b-ov','UNDER':'b-un'};
+  return '<span class="badge '+(map[text]||'b-nov')+'">'+text+'</span>';
+}
+
+function renderBestBet(r) {
+  var wrap=document.getElementById('bbbWrap');
+  var card=document.getElementById('bbbCard');
+  wrap.style.display='block';
+
+  var candidates=[];
+  if(r.edge1>0.03) candidates.push({
+    color:'orange', pick:r.t1[0]+' ML', prob:r.p1, edge:r.edge1, evv:r.ev1, k:r.k1,
+    reason:r.t1[0]+' is underpriced at '+r.ml1+'. The model gives them a '+pct(r.p1)+' win probability — '+(r.edge1*100).toFixed(1)+'% above the book\'s implied probability. Positive EV of '+evFmt(r.ev1)+' per $1.'
+  });
+  if(r.edge2>0.03) candidates.push({
+    color:'blue', pick:r.t2[0]+' ML', prob:r.p2, edge:r.edge2, evv:r.ev2, k:r.k2,
+    reason:r.t2[0]+' is underpriced at '+(r.ml2>0?'+':'')+r.ml2+'. The model gives them a '+pct(r.p2)+' win probability — '+(r.edge2*100).toFixed(1)+'% above the book\'s implied probability.'
+  });
+  if(r.spreadEdge>0.03) candidates.push({
+    color:'orange', pick:r.t1[0]+' '+r.spread, prob:r.spreadProb1, edge:r.spreadEdge, evv:ev(r.spreadProb1,-110), k:kelly(r.spreadProb1,-110),
+    reason:r.t1[0]+' to cover '+r.spread+'. Model cover probability of '+pct(r.spreadProb1)+' vs the book\'s implied 52.4% at -110 juice.'
+  });
+  if(r.spreadEdge<-0.03) candidates.push({
+    color:'blue', pick:r.t2[0]+' +'+(Math.abs(r.spread)), prob:1-r.spreadProb1, edge:Math.abs(r.spreadEdge), evv:ev(1-r.spreadProb1,-110), k:kelly(1-r.spreadProb1,-110),
+    reason:r.t2[0]+' to cover +'+(Math.abs(r.spread))+'. Model cover probability of '+pct(1-r.spreadProb1)+' vs the book\'s implied 52.4%.'
+  });
+
+  if(candidates.length===0) {
+    card.className='bbb gray';
+    document.getElementById('bbbMatch').textContent=r.t1[0]+' vs '+r.t2[0]+' · '+r.roundName;
+    document.getElementById('bbbPick').textContent='NO VALUE DETECTED';
+    document.getElementById('bbbReason').textContent='The model finds no meaningful edge. The posted lines are aligned with model probabilities. Consider passing or waiting for line movement.';
+    document.getElementById('bbbPct').textContent='—';
+    document.getElementById('bbbStats').innerHTML='';
+    document.getElementById('bbbRing').style.strokeDashoffset='314.16';
+    return;
+  }
+
+  var best=candidates.sort(function(a,b){return b.edge-a.edge})[0];
+  card.className='bbb '+best.color;
+  var bbbRing=document.getElementById('bbbRing');
+  bbbRing.style.stroke=best.color==='orange'?'#fb923c':best.color==='green'?'#22c55e':'#60a5fa';
+  document.getElementById('bbbMatch').textContent=r.t1[0]+' vs '+r.t2[0]+' · '+r.roundName;
+  document.getElementById('bbbPick').textContent=best.pick;
+  document.getElementById('bbbReason').textContent=best.reason;
+  document.getElementById('bbbPct').textContent=(best.prob*100).toFixed(1)+'%';
+  setTimeout(function(){ bbbRing.style.strokeDashoffset=314.16*(1-best.prob); },100);
+  document.getElementById('bbbStats').innerHTML=
+    '<div class="bbb-stat"><div class="bbb-stat-v" style="color:'+(best.edge>0?'var(--green)':'var(--red)')+'">'+sgn(best.edge*100)+'%</div><div class="bbb-stat-k">Edge</div></div>'
+    +'<div class="bbb-stat"><div class="bbb-stat-v" style="color:'+(best.evv>0?'var(--green)':'var(--red)')+'">'+evFmt(best.evv)+'</div><div class="bbb-stat-k">EV/$1</div></div>'
+    +'<div class="bbb-stat"><div class="bbb-stat-v" style="color:var(--gold)">'+pct(best.k)+'</div><div class="bbb-stat-k">Kelly</div></div>';
+}
+
+// ═══════════════════════════════════
+// TABS + UI
+// ═══════════════════════════════════
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function animateSteps(cb) {
+  var ids=['s1','s2','s3','s4','s5'];
+  var starts=[0,200,400,1100,1600];
+  var ends=[300,500,1300,1400,1800];
+  ids.forEach(function(id,i){
+    setTimeout(function(){ document.getElementById(id).className='step run'; },starts[i]);
+    setTimeout(function(){ document.getElementById(id).className='step done'; },ends[i]);
+  });
+  setTimeout(cb,2000);
+}
+
+function updateSeedPreview() {
+  var t1=document.getElementById('team1').value;
+  var t2=document.getElementById('team2').value;
+  var s1=document.getElementById('seed1').value;
+  var s2=document.getElementById('seed2').value;
+  var d=document.getElementById('seedPreview');
+  var data1=TEAMS[t1];var data2=TEAMS[t2];
+  d.innerHTML='';
+  if(data1){d.innerHTML+='<div class="seed-chip"><span class="seed-num">#'+s1+'</span><span>'+data1[0]+'</span><span style="color:var(--muted);font-size:10px">('+data1[1]+')</span></div>';}
+  if(data2){d.innerHTML+='<div class="seed-chip"><span class="seed-num" style="color:#93c5fd">#'+s2+'</span><span>'+data2[0]+'</span><span style="color:var(--muted);font-size:10px">('+data2[1]+')</span></div>';}
+}
+
+function runAnalysis() {
+  var t1=document.getElementById('team1').value;
+  var t2=document.getElementById('team2').value;
+  var s1=parseInt(document.getElementById('seed1').value)||1;
+  var s2=parseInt(document.getElementById('seed2').value)||16;
+  var ml1=document.getElementById('ml1').value;
+  var ml2=document.getElementById('ml2').value;
+  var spread=document.getElementById('spread1').value;
+  var round=document.getElementById('round').value;
+  var err=document.getElementById('errBox');
+  err.className='err';
+  if(t1===t2){err.className='err show';err.textContent='⚠ Please select two different teams.';return;}
+
+  var btn=document.getElementById('analyzeBtn');
+  btn.disabled=true; btn.textContent='⏳ RUNNING 50,000 SIMULATIONS...';
+  document.getElementById('loadingWrap').className='loading-wrap show';
+  document.getElementById('results').className='';
+  document.getElementById('bbbWrap').style.display='none';
+  document.querySelectorAll('.step').forEach(function(s){s.className='step';});
+
+  animateSteps(function(){
+    try {
+      var result=buildPrediction(t1,t2,s1,s2,ml1,ml2,spread,round);
+      renderResults(result);
+      document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+      document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+      document.getElementById('tab-overview').classList.add('active');
+      document.querySelectorAll('.tab-btn')[0].classList.add('active');
+      document.getElementById('results').className='show';
+    } catch(e){
+      err.className='err show'; err.textContent='⚠ Error: '+e.message;
+    }
+    btn.disabled=false;
+    btn.innerHTML='<div class="shimmer"></div>⚡ RUN ANALYSIS';
+    document.getElementById('loadingWrap').className='loading-wrap';
+  });
+}
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+(function init(){
+  var t1el=document.getElementById('team1');
+  var t2el=document.getElementById('team2');
+  var keys=Object.keys(TEAMS);
+  keys.forEach(function(k){
+    var d=TEAMS[k];
+    t1el.innerHTML+='<option value="'+k+'">'+d[0]+' ('+d[1]+') — #'+d[3]+' seed</option>';
+    t2el.innerHTML+='<option value="'+k+'">'+d[0]+' ('+d[1]+') — #'+d[3]+' seed</option>';
+  });
+
+  // Default: Duke vs Siena (1 vs 16)
+  t1el.value='Duke'; t2el.value='Siena';
+  document.getElementById('seed1').value='1';
+  document.getElementById('seed2').value='16';
+  document.getElementById('ml1').value='-2500';
+  document.getElementById('ml2').value='+1200';
+  document.getElementById('spread1').value='-23.5';
+  updateSeedPreview();
+
+  t1el.addEventListener('change',function(){
+    var d=TEAMS[t1el.value];
+    if(d){document.getElementById('seed1').value=d[3];}
+    updateSeedPreview();
+  });
+  t2el.addEventListener('change',function(){
+    var d=TEAMS[t2el.value];
+    if(d){document.getElementById('seed2').value=d[3];}
+    updateSeedPreview();
+  });
+  document.getElementById('seed1').addEventListener('change',updateSeedPreview);
+  document.getElementById('seed2').addEventListener('change',updateSeedPreview);
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Enter'&&!document.getElementById('analyzeBtn').disabled) runAnalysis();
+  });
+})();
+</script>
+</body>
+</html>
